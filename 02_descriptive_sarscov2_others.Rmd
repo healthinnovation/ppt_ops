@@ -23,7 +23,6 @@ knitr::opts_chunk$set(echo = TRUE,
 # Paquetes
 ```{r}
 library(tidyverse)
-library(lubridate)
 library(innovar)
 ```
 
@@ -73,7 +72,137 @@ ffi_total <- covid_others %>%
 #write_csv(ffi_locations, "01_data/processed/ffi_locations.csv")
 ```
 
+# General Plot
 
+```{r}
+ffi_total <- ffi_total %>% 
+  group_by(ffi_is_district) %>% 
+  mutate(
+    distance_to_rh_hf_sampl = as.numeric(cut_number(distance_to_rh_hf_sampl_num, 3)),
+    distance_to_rh_hf_sampl = factor(distance_to_rh_hf_sampl, 
+                                     labels = c("Proximate", "Moderate",
+                                                "Distant"))
+  ) %>% 
+  ungroup()
+```
+
+
+```{r}
+ffi_sero <- ffi_total %>% 
+  select(ffi_is_code, ffi_is_district,
+         age_cat,distance_to_rh_hf_sampl, 
+         X229.E.NP_pos:MERSP.NP_pos,
+         OC43.NP_pos, SARS.NP.WT_pos,
+         SEA_pos:Zika.NS1_pos) %>% 
+  drop_na() %>% 
+  pivot_longer(
+    cols = c(X229.E.NP_pos:Zika.NS1_pos),
+    names_to = "Disease",
+    values_to = "Cases"
+  ) %>% 
+  group_by(ffi_is_district, age_cat, 
+           distance_to_rh_hf_sampl,
+           Disease) %>% 
+  summarise(result_exposure = mean(Cases))
+```
+
+```{r}
+
+labeller(
+  distance_to_rh_hf_sampl = c(
+    Chik.E1_pos = "Chikungunya",
+    Dengue.NS1.1_pos = "Dengue - Type 1",
+    Dengue.NS1.2_pos = "Dengue - Type 2",
+    Dengue.NS1.3_pos = "Dengue - Type 3",
+    Dengue.NS1.4_pos = "Dengue - Type 4",
+    H3N2_pos = "Influenza",
+    HKV1.NP_pos = "Common Cold 1",
+    MERSP.NP_pos = "MERS",
+    OC43.NP_pos = "Common Cold 2",
+    SARS.NP.WT_pos = "COVID-19",
+    SEA_pos = "Schistosomiasis",
+    Tet.Tox_pos = "Tetanus toxoid",
+    X229.E.NP_pos = "Human coronavirus - 229E",
+    Zika.NS1_pos = "Zika"
+  )
+)
+
+
+
+plot_ffi_sero <- ffi_sero %>% 
+  mutate(
+    Disease = fct_recode(
+      Disease,
+      "Chikungunya" = "Chik.E1_pos",
+      "Dengue - Type 1" = "Dengue.NS1.1_pos",
+      "Dengue - Type 2" = "Dengue.NS1.2_pos",
+      "Dengue - Type 3" = "Dengue.NS1.3_pos",
+      "Dengue - Type 4" = "Dengue.NS1.4_pos",
+      "Influenza" = "H3N2_pos",
+      "Common Cold 1" = "HKV1.NP_pos",
+      "MERS" = "MERSP.NP_pos",
+      "Common Cold 2" = "OC43.NP_pos",
+      "COVID-19" = "SARS.NP.WT_pos", 
+      "Schistosomiasis" = "SEA_pos",
+      "Tetanus toxoid" = "Tet.Tox_pos",
+      "Human coronavirus - 229E" = "X229.E.NP_pos",
+      "Zika" = "Zika.NS1_pos"
+    )
+  ) %>% 
+  ggplot(
+    aes(
+      x = age_cat,
+      y = result_exposure,
+      color = Disease,
+      group = Disease
+    )
+  ) +
+  geom_point() +
+  geom_line() +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  ) +
+  labs(
+    x = "Age",
+    y = "Seropositivity",
+    title = str_wrap("Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
+  ) +
+  guides(
+    color = guide_legend("Disease")
+  ) +
+  innovar::scale_color_innova("npr") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    )
+  )
+```
+
+```{r}
+ggsave(
+  "plot_ffi_sero.png",
+  plot = plot_ffi_sero,
+  width = 10,
+  height = 6,
+  dpi = 400
+)
+```
 
 
 # SARS-CoV-2 Seropositivity
