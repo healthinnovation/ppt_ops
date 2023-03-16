@@ -1,0 +1,482 @@
+---
+title: "SARS-CoV-2 & Other Diseases"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::downcute:
+    self_contained: true
+    highlight: kate
+    toc_depth: 3
+    default_style: dark
+    code_folding: hide
+    code_download: true
+    highlight_downlit: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+# Paquetes
+```{r}
+library(tidyverse)
+library(lubridate)
+library(innovar)
+```
+
+# Data Wrangling
+
+```{r}
+#Reading COVID-19 and FFI data
+
+covid_others <- read.csv("01_data/processed/FFI Peru_seropositivity_NEG_cutoff.csv") %>% 
+  filter(Sample != "MISTAKE") %>%
+  select(2,19:34) %>% 
+  mutate(Sample = str_extract(Sample, "\\d+"),
+         Sample = case_when(
+           Sample == "010204904" ~ "10204904",
+           TRUE ~ Sample
+         )) %>% 
+  mutate(
+    ffi_is_code = paste0(0,Sample)
+  ) %>% 
+  relocate(ffi_is_code,
+           .after = Sample) %>% 
+  select(-Sample)
+
+ffi <- readRDS("01_data/processed/ffi_total.rds")
+
+ffi_total <- covid_others %>% 
+  left_join(
+    ffi, by = "ffi_is_code"
+  )
+  
+
+# Exporting data for Martina
+# ffi_total <- ffi_total %>% 
+#   unite("ffi_h_code", ffi_is_cod_proy:ffi_is_cod_household, sep = "") %>% 
+#   select(ffi_h_code, ffi_is_code, ffi_is_district, ffi_is_community, 
+#          SEA_pos, age_cat, gender, economic_activities, education_level,
+#          ffi_is_trip_month, ffi_is_place_shower,
+#          ffi_is_age_fixed) 
+
+# ffi_households <- readRDS("01_data/processed/ffi_household.rds") %>% 
+#   select(ffi_h_code ,ffi_gps_lat, ffi_gps_long)
+# 
+# 
+# ffi_locations <- ffi_total %>% 
+#   left_join(ffi_households)
+
+#write_csv(ffi_locations, "01_data/processed/ffi_locations.csv")
+```
+
+
+
+
+# SARS-CoV-2 Seropositivity
+
+```{r}
+
+sero_covid <- ffi_total %>% 
+  select(ffi_is_code, ffi_is_district, age_cat,distance_to_rh_hf_sampl, SARS.NP.WT_pos) %>% 
+  drop_na() %>% 
+  mutate(
+    exposure = case_when(
+       SARS.NP.WT_pos == 1 ~"Seropositive",
+       TRUE ~ "Seronegative"
+    )
+  ) %>% 
+  group_by(ffi_is_district, age_cat, distance_to_rh_hf_sampl) %>% 
+  count(exposure) %>% 
+  mutate(
+    result_exposure = n/sum(n)
+  ) %>% 
+  select(-n) %>% 
+  ungroup() %>% 
+  mutate(
+    distance_to_rh_hf_sampl = fct_relevel(distance_to_rh_hf_sampl, 
+                                      "Proximate", "Moderate",
+                                      "Distant", "Extra Distant")
+  ) %>% 
+  ggplot(
+    aes(
+      x = age_cat,
+      y = result_exposure,
+      color = exposure,
+      group = exposure
+    )
+  ) +
+  geom_point() +
+  geom_line() +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  )+
+  labs(
+    x = "Age",
+    y = "Seropositivity",
+    title = str_wrap("SARS-CoV-2 Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
+  ) +
+  guides(
+    color = guide_legend("SARS-CoV-2")
+  ) +
+  innovar::scale_color_innova("npr") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    )
+  )
+
+sero_covid 
+
+```
+
+
+
+# Schistosomiasis Seropositivity
+
+```{r}
+
+sero_sea <- ffi_total %>% 
+  select(ffi_is_code, ffi_is_district, age_cat,distance_to_rh_hf_sampl, SEA_pos) %>% 
+  drop_na() %>% 
+  mutate(
+    exposure = case_when(
+       SEA_pos == 1 ~"Seropositive",
+       TRUE ~ "Seronegative"
+    )
+  ) %>% 
+  group_by(ffi_is_district, age_cat, distance_to_rh_hf_sampl) %>% 
+  count(exposure) %>% 
+  mutate(
+    result_exposure = n/sum(n)
+  ) %>% 
+  select(-n) %>% 
+  ungroup() %>% 
+  mutate(
+    distance_to_rh_hf_sampl = fct_relevel(distance_to_rh_hf_sampl, 
+                                      "Proximate", "Moderate",
+                                      "Distant", "Extra Distant")
+  ) %>% 
+  ggplot(
+    aes(
+      x = age_cat,
+      y = result_exposure,
+      color = exposure,
+      group = exposure
+    )
+  ) +
+  geom_point() +
+  geom_line() +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  )+
+  labs(
+    x = "Age",
+    y = "Seropositivity",
+    title = str_wrap("Schistosomiasis Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
+  ) +
+  guides(
+    color = guide_legend("Schistosomiasis")
+  ) +
+  innovar::scale_color_innova("npr") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    )
+  )
+
+sero_sea 
+
+```
+
+
+
+# ZIKA Seropositivity
+
+```{r}
+
+a <- ffi_total %>% 
+  filter(ffi_is_district == "Indiana") %>% 
+  group_by(distance_to_rh_hf_sampl) %>% 
+  count(ffi_is_community)
+
+
+sero_zika <- ffi_total %>% 
+  select(ffi_is_code, ffi_is_district, age_cat,distance_to_rh_hf_sampl, Zika.NS1_pos) %>% 
+  drop_na() %>% 
+  mutate(
+    exposure = case_when(
+       Zika.NS1_pos == 1 ~"Seropositive",
+       TRUE ~ "Seronegative"
+    )
+  ) %>% 
+  group_by(ffi_is_district, age_cat, distance_to_rh_hf_sampl) %>% 
+  count(exposure) %>% 
+  mutate(
+    result_exposure = n/sum(n)
+  ) %>% 
+  select(-n) %>% 
+  ungroup() %>% 
+  mutate(
+    distance_to_rh_hf_sampl = fct_relevel(distance_to_rh_hf_sampl, 
+                                      "Proximate", "Moderate",
+                                      "Distant", "Extra Distant")
+  ) %>% 
+  ggplot(
+    aes(
+      x = age_cat,
+      y = result_exposure,
+      color = exposure,
+      group = exposure
+    )
+  ) +
+  geom_point() +
+  geom_line() +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  )+
+  labs(
+    x = "Age",
+    y = "Seropositivity",
+    title = str_wrap("ZIKA Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
+  ) +
+  guides(
+    color = guide_legend("ZIKA")
+  ) +
+  innovar::scale_color_innova("npr") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    )
+  )
+
+sero_zika
+
+```
+
+
+
+
+
+```{r}
+# Reading river distance data
+
+# river <- read.csv("01_data/processed/ffi_distance_to_rivers.csv") %>%
+#   mutate(
+#     ffi_h_code = as.character(ffi_h_code),
+#     ffi_h_code = paste0(0,ffi_h_code)
+#   )
+# 
+# # Calculating seropositivity by household
+# 
+# sero_schisto <- ffi_total %>%
+#   group_by(ffi_h_code) %>%
+#   summarise(numerador = sum(SEA_pos),
+#          denominador = n(),
+#          schisto_sero = round((numerador/denominador)*100, 2)
+#          ) %>%
+#   ungroup() %>%
+#   mutate(
+#     sample_ponderation = denominador/mean(denominador),
+#     seropositivity_ponderated = schisto_sero*sample_ponderation
+#   )
+# 
+# schisto_total <- river %>%
+#   inner_join(sero_schisto, by = "ffi_h_code")
+# 
+# #Seropositivity in age-school children
+# 
+# sero_age_school <- ffi_total %>%
+#   mutate(
+#     age_school = case_when(
+#       ffi_is_age_fixed < 1 ~ "no_school_aged",
+#       ffi_is_age_fixed >= 1 & ffi_is_age_fixed < 5  ~ "pre_school_aged",
+#       ffi_is_age_fixed >= 5 &  ffi_is_age_fixed < 15 ~ "school_aged",
+#       TRUE ~ "adults"
+#     ),
+#     sero_sea_cat = case_when(
+#       SEA_pos == 1 ~ "seropositive",
+#       TRUE ~ "seronegative"
+#     )
+#   ) %>%
+#   filter(
+#     age_school %in% c("pre_school_aged", "school_aged")
+#   ) %>%
+#   group_by(age_school, sero_sea_cat) %>%
+#   count() %>%
+#   ungroup() %>%
+#   group_by(age_school) %>% 
+#   mutate(
+#     prop = n/sum(n)*100
+#   )
+# 
+# 
+# 
+# # Ploting seropositivity
+# 
+# ## Ploting overall
+# plot_total <- schisto_total %>%
+#   group_by(ffi_h_code) %>%
+#   filter(distance_km == min(distance_km)) %>%
+#   ggplot(
+#     aes(x = distance_km)
+#     ) +
+#   geom_histogram() +
+#   facet_wrap(vars(name))
+# 
+# plot_total
+# 
+# ## Ploting positives
+# 
+# plot_posi <- schisto_total %>%
+#   group_by(ffi_h_code) %>%
+#   filter(distance_km == min(distance_km)) %>%
+#   filter(seropositivity_ponderated>0) %>%
+#   ggplot(
+#     aes(x = distance_km)
+#     ) +
+#   geom_boxplot() +
+#   facet_wrap(vars(name))
+# 
+# plot_posi
+# 
+# ## Plot negatives
+# 
+# plot_nega <- schisto_total %>%
+#   group_by(ffi_h_code) %>%
+#   filter(distance_km == min(distance_km)) %>%
+#   filter(seropositivity_ponderated==0) %>%
+#   ggplot(
+#     aes(x = distance_km)
+#     ) +
+#   geom_boxplot() +
+#   facet_wrap(vars(name))
+# 
+# plot_nega
+# 
+# 
+# ggpubr::ggarrange(plot_total, plot_posi, plot_nega,
+#                   ncol = 2, nrow = 2,
+#                   hjust = 1)
+# 
+# 
+# # Focused on + cases
+# 
+# plot_sero_cat <- schisto_total %>%
+#   mutate(
+#     quartile = ntile(seropositivity_ponderated, 4),
+#     sero_cat = case_when(
+#       quartile < 5 ~ ""
+#     )
+#   ) %>%
+#   filter(
+# 
+#   )
+# 
+# 
+# #Analisis de correlación
+# 
+# min_distance_total <- schisto_total %>%
+#   group_by(ffi_h_code) %>%
+#   filter(distance_km == min(distance_km)) %>%
+#   ggplot(aes(x= distance_km)) +
+#   geom_boxplot()
+# 
+# 
+# min_distance_pos <- schisto_total %>%
+#   filter(seropositivity_ponderated > 0) %>%
+#   group_by(ffi_h_code) %>%
+#   filter(distance_km == min(distance_km)) %>%
+#   ggplot(aes(x= distance_km)) +
+#   geom_histogram()
+# 
+# ggpubr::ggarrange(min_distance_total, min_distance_pos, ncol = 2, nrow = 1)
+```
+
+
+```{r}
+#proportions
+# library(gtsummary)
+# 
+# table_1 <- schisto_total %>%
+#   group_by(ffi_h_code) %>%
+#   filter(distance_km == min(distance_km)) %>%
+#   mutate(
+#     SEA_pos = case_when(
+#       SEA_pos == "0" ~ "Seronegative",
+#       TRUE ~ "Seropositive"
+#     )
+#   ) %>%
+#   ungroup() %>%
+#   select(
+#     gender, ffi_is_district, age_cat,
+#     education_level, economic_activities,
+#     ffi_is_trip_month, ffi_is_place_shower,SEA_pos,
+#     ffi_is_age_fixed
+#   ) %>%
+#   tbl_summary(
+#     by = "SEA_pos"
+#   )
+# 
+# table_1
+# 
+# table_1 %>%
+#   gtsummary::as_flex_table() %>%
+#   flextable::save_as_docx(path = "./02_output/reports/table1_schisto.docx")
+```
+
+
+
+
+
