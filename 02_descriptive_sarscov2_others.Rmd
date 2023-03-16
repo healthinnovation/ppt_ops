@@ -757,3 +757,96 @@ ggsave(
 
 
 
+```{r}
+grouped_ggbetweenstats(
+  data             = ffi_sero_gender,
+  x                = gender,
+  y                = result_exposure,
+  grouping.var     = Disease,
+  # outlier.tagging  = TRUE,
+  # outlier.label    = title,
+  # outlier.coef     = 2,
+  # ggsignif.args    = list(textsize = 4, tip_length = 0.01),
+  # p.adjust.method  = "bonferroni",
+  # palette          = "default_jama",
+  # package          = "ggsci",
+  # plotgrid.args    = list(nrow = 1),
+  # annotation.args  = list(title = "Differences in movie length by mpaa ratings for different genres")
+)
+```
+
+
+
+```{r}
+boxplot_sero_gender <- ffi_sero_gender %>% 
+  mutate(
+    Disease = fct_reorder(Disease, result_exposure, .desc = TRUE)
+  ) %>% 
+  ggplot(
+    aes(
+      y = result_exposure,
+      x = Disease,
+      fill = gender
+    )
+  ) +
+  geom_boxplot() +
+  facet_wrap(vars(ffi_is_district),
+             nrow = 2) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  ) +
+  guides(
+    fill = guide_legend("Gender",
+                        reverse = TRUE)
+  ) +
+  innovar::scale_fill_innova("npr") + #"dark_green"
+  labs(
+    x = "Seropositivity",
+    y = NULL,
+    title = NULL
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+
+boxplot_sero_gender
+```
+
+
+```{r}
+ggsave(
+  "boxplot_sero_gender.png",
+  plot = boxplot_sero_gender,
+  width = 8,
+  height = 8,
+  dpi = 400
+)
+```
+
+
+
+
+
+
+
+
+
+
