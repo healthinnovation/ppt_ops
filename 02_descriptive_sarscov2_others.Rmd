@@ -107,28 +107,6 @@ ffi_sero <- ffi_total %>%
 ```
 
 ```{r}
-
-labeller(
-  distance_to_rh_hf_sampl = c(
-    Chik.E1_pos = "Chikungunya",
-    Dengue.NS1.1_pos = "Dengue - Type 1",
-    Dengue.NS1.2_pos = "Dengue - Type 2",
-    Dengue.NS1.3_pos = "Dengue - Type 3",
-    Dengue.NS1.4_pos = "Dengue - Type 4",
-    H3N2_pos = "Influenza",
-    HKV1.NP_pos = "Common Cold 1",
-    MERSP.NP_pos = "MERS",
-    OC43.NP_pos = "Common Cold 2",
-    SARS.NP.WT_pos = "COVID-19",
-    SEA_pos = "Schistosomiasis",
-    Tet.Tox_pos = "Tetanus toxoid",
-    X229.E.NP_pos = "Human coronavirus - 229E",
-    Zika.NS1_pos = "Zika"
-  )
-)
-
-
-
 plot_ffi_sero <- ffi_sero %>% 
   mutate(
     Disease = fct_recode(
@@ -606,6 +584,176 @@ sero_zika
 ```
 
 
+# Aditional plots
+
+## Boxplot
+
+
+
+```{r}
+ffi_sero_gender <- ffi_total %>% 
+  select(ffi_is_code, ffi_is_district,
+         gender, distance_to_rh_hf_sampl, 
+         X229.E.NP_pos:MERSP.NP_pos,
+         OC43.NP_pos, SARS.NP.WT_pos,
+         SEA_pos:Zika.NS1_pos) %>% 
+  drop_na() %>% 
+  pivot_longer(
+    cols = c(X229.E.NP_pos:Zika.NS1_pos),
+    names_to = "Disease",
+    values_to = "Cases"
+  ) %>% 
+  group_by(ffi_is_district, gender, 
+           distance_to_rh_hf_sampl,
+           Disease) %>% 
+  summarise(result_exposure = mean(Cases)) %>% 
+  mutate(
+    Disease = fct_recode(
+      Disease,
+      "Chikungunya" = "Chik.E1_pos",
+      "Dengue - Type 1" = "Dengue.NS1.1_pos",
+      "Dengue - Type 2" = "Dengue.NS1.2_pos",
+      "Dengue - Type 3" = "Dengue.NS1.3_pos",
+      "Dengue - Type 4" = "Dengue.NS1.4_pos",
+      "Influenza" = "H3N2_pos",
+      "Common Cold 1" = "HKV1.NP_pos",
+      "MERS" = "MERSP.NP_pos",
+      "Common Cold 2" = "OC43.NP_pos",
+      "COVID-19" = "SARS.NP.WT_pos", 
+      "Schistosomiasis" = "SEA_pos",
+      "Tetanus toxoid" = "Tet.Tox_pos",
+      "Human coronavirus - 229E" = "X229.E.NP_pos",
+      "Zika" = "Zika.NS1_pos"
+    )
+  )
+```
+
+```{r}
+bar_plot_sero_gender <- ffi_sero_gender %>% 
+  mutate(
+    Disease = fct_reorder(Disease, result_exposure),
+    gender = fct_reorder(gender, result_exposure, .desc = TRUE)
+  ) %>% 
+  ggplot(
+    aes(
+      x = result_exposure,
+      y = Disease,
+      fill = gender
+    )
+  ) +
+  geom_col(position ="dodge") +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_x_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  ) +
+  guides(
+    fill = guide_legend("Gender",
+                        reverse = TRUE)
+  ) +
+  innovar::scale_fill_innova("npr") + #"dark_green"
+  labs(
+    x = "Seropositivity",
+    y = NULL,
+    title = NULL
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    )
+  )
+
+bar_plot_sero_gender
+```
+
+
+```{r}
+ggsave(
+  "bar_plot_sero_gender.png",
+  plot = bar_plot_sero_gender,
+  width = 9,
+  height = 8,
+  dpi = 400
+)
+```
+
+
+```{r}
+plot_ffi_sero_gender <- ffi_sero_gender %>% 
+  ggplot(
+    aes(
+      x = Disease,
+      y = result_exposure,
+      color = gender,
+      group = gender
+    )
+  ) +
+  geom_point() +
+  geom_line() +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  ) +
+  labs(
+    x = "Disease",
+    y = "Seropositivity",
+    title = str_wrap("Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
+  ) +
+  guides(
+    color = guide_legend("Gender")
+  ) +
+  innovar::scale_color_innova("npr") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+
+plot_ffi_sero_gender
+```
+
+```{r}
+ggsave(
+  "plot_ffi_sero_gender.png",
+  plot = plot_ffi_sero_gender,
+  width = 10,
+  height = 6,
+  dpi = 400
+)
+```
 
 
 
