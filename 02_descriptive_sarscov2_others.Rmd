@@ -90,7 +90,7 @@ ffi_total <- ffi_total %>%
 ```{r}
 ffi_sero <- ffi_total %>% 
   select(ffi_is_code, ffi_is_district,
-         age_cat,distance_to_rh_hf_sampl, 
+         age_cat, distance_to_rh_hf_sampl, 
          X229.E.NP_pos:MERSP.NP_pos,
          OC43.NP_pos, SARS.NP.WT_pos,
          SEA_pos:Zika.NS1_pos) %>% 
@@ -104,10 +104,8 @@ ffi_sero <- ffi_total %>%
            distance_to_rh_hf_sampl,
            Disease) %>% 
   summarise(result_exposure = mean(Cases))
-```
 
-```{r}
-plot_ffi_sero <- ffi_sero %>% 
+ffi_sero <- ffi_sero %>% 
   mutate(
     Disease = fct_recode(
       Disease,
@@ -126,6 +124,21 @@ plot_ffi_sero <- ffi_sero %>%
       "Human coronavirus - 229E" = "X229.E.NP_pos",
       "Zika" = "Zika.NS1_pos"
     )
+  ) %>% 
+  ungroup()
+```
+
+
+```{r}
+plot_ffi_sero1 <-
+  ffi_sero %>% 
+  filter(
+    Disease %in% c("Dengue - Type 1",
+                   "Dengue - Type 2",
+                   "Dengue - Type 3",
+                   "Dengue - Type 4",
+                   "Chikungunya",
+                   "Zika")
   ) %>% 
   ggplot(
     aes(
@@ -153,7 +166,11 @@ plot_ffi_sero <- ffi_sero %>%
   guides(
     color = guide_legend("Disease")
   ) +
-  innovar::scale_color_innova("npr") +
+  viridis::scale_color_viridis(discrete = TRUE,
+                               option = "D",
+                               end = 0.82) +
+  #scale_color_brewer(palette = "Set3") +
+  #innovar::scale_color_innova("npr") +
   theme_bw() +
   theme(
     plot.title = element_text(
@@ -174,13 +191,88 @@ plot_ffi_sero <- ffi_sero %>%
 
 ```{r}
 ggsave(
-  "plot_ffi_sero.png",
-  plot = plot_ffi_sero,
+  "plot_ffi_sero1.png",
+  plot = plot_ffi_sero1,
   width = 10,
   height = 6,
   dpi = 400
 )
 ```
+
+
+
+```{r}
+plot_ffi_sero2 <-
+  ffi_sero %>% 
+  filter(
+    !Disease %in% c("Dengue - Type 1",
+                   "Dengue - Type 2",
+                   "Dengue - Type 3",
+                   "Dengue - Type 4",
+                   "Chikungunya",
+                   "Zika")
+  ) %>% 
+  ggplot(
+    aes(
+      x = age_cat,
+      y = result_exposure,
+      color = Disease,
+      group = Disease
+    )
+  ) +
+  geom_point() +
+  geom_line() +
+  facet_grid(
+    vars(distance_to_rh_hf_sampl),
+    vars(ffi_is_district)    
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    #limits = c(0, 0.50)
+  ) +
+  labs(
+    x = "Age",
+    y = "Seropositivity",
+    title = str_wrap("Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
+  ) +
+  guides(
+    color = guide_legend("Disease")
+  ) +
+  viridis::scale_color_viridis(discrete = TRUE,
+                               option = "D",
+                               end = 0.82) +
+  #scale_color_brewer(palette = "Set3") +
+  #innovar::scale_color_innova("npr") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    strip.text = element_text(
+      size = 12,
+      face = "bold"
+    ),
+    legend.title = element_text(
+      size = 12,
+      face = "bold"
+    )
+  )
+plot_ffi_sero2
+```
+
+```{r}
+ggsave(
+  "plot_ffi_sero2.png",
+  plot = plot_ffi_sero2,
+  width = 10,
+  height = 6,
+  dpi = 400
+)
+```
+
+
 
 
 # SARS-CoV-2 Seropositivity
@@ -842,6 +934,7 @@ ggsave(
 ```
 
 
+## Sankey Plots
 
 
 
