@@ -937,9 +937,349 @@ ggsave(
 ## Sankey Plots
 
 
+```{r}
+library(ggsankey)
+```
+
+```{r}
+ffi_sankey_format <- ffi_total %>% 
+  mutate(
+    Dengue = case_when(
+      Dengue.NS1.1_pos == 1 | 
+        Dengue.NS1.2_pos == 1 |
+        Dengue.NS1.3_pos == 1 | 
+        Dengue.NS1.4_pos == 1 ~ 1,
+      .default = 0
+    ),
+    across(
+      c(SARS.NP.WT_pos, Dengue,
+        Zika.NS1_pos),
+      ~ case_match(
+        .,
+        1 ~ "Positive",
+        .default = "Negative"
+      )
+    )
+  ) %>% 
+  select(gender, ffi_is_trip_month, 
+         SARS.NP.WT_pos, 
+         Dengue,
+         any_pv_pf_exposure,
+         Zika.NS1_pos) %>% 
+  drop_na()
+```
+
+### Sankey Covid
+
+```{r}
+relabels_sankey_covid <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, SARS.NP.WT_pos) %>% 
+  count(x, node) %>% 
+  group_by(x) %>% 
+  mutate(
+    percentage = scales::percent(
+      n / sum(n),
+      accuracy = 0.1
+    ),
+    node2 = paste0(
+      node,
+      paste0("\n(", percentage, ")")
+    )
+  ) %>% 
+  ungroup() %>% 
+  select(-c(n, percentage))
+  
+sankey_covid <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, SARS.NP.WT_pos) %>% 
+  left_join(
+    relabels_sankey_covid,
+    by = join_by(x, node)
+  ) %>% 
+  left_join(
+    relabels_sankey_covid,
+    by = join_by(next_x == x, 
+                 next_node == node)
+  ) %>% 
+  mutate(node = node2.x,
+         next_node = node2.y) %>% 
+  select(-c(node2.x, node2.y)) %>% 
+  ggplot(aes(
+    x = x,
+    next_x = next_x,
+    node = node,
+    next_node = next_node,
+    fill = factor(node),
+    label = node
+  )) +
+  geom_sankey(
+    flow.alpha = .8,
+    node.color = "gray30"
+  ) +
+  geom_sankey_label(size = 4,
+                    color = "white",
+                    fill = "gray30") +
+  scale_x_discrete(
+    labels = c("Sex", 
+               "Have you been on a trip in the last month?",
+               "COVID - 19")
+  ) +
+  labs(
+    x = NULL,
+    title = NULL
+  ) +
+  theme_sankey(base_size = 18) +
+  innovar::scale_fill_innova("npr") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = .5),
+    plot.margin = margin(5, 0, 5, 0)
+  )
+
+sankey_covid
+```
+
+
+```{r eval=FALSE}
+ggsave("./sankey_seropositive_covid.png",
+       sankey_covid,
+       height = 7,
+       width = 12,
+       dpi = 300)
+```
 
 
 
+### Sankey Dengue
+
+```{r}
+relabels_sankey_dengue <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, Dengue) %>% 
+  count(x, node) %>% 
+  group_by(x) %>% 
+  mutate(
+    percentage = scales::percent(
+      n / sum(n),
+      accuracy = 0.1
+    ),
+    node2 = paste0(
+      node,
+      paste0("\n(", percentage, ")")
+    )
+  ) %>% 
+  ungroup() %>% 
+  select(-c(n, percentage))
+  
+sankey_dengue <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, Dengue) %>% 
+  left_join(
+    relabels_sankey_dengue,
+    by = join_by(x, node)
+  ) %>% 
+  left_join(
+    relabels_sankey_dengue,
+    by = join_by(next_x == x, 
+                 next_node == node)
+  ) %>% 
+  mutate(node = node2.x,
+         next_node = node2.y) %>% 
+  select(-c(node2.x, node2.y)) %>% 
+  ggplot(aes(
+    x = x,
+    next_x = next_x,
+    node = node,
+    next_node = next_node,
+    fill = factor(node),
+    label = node
+  )) +
+  geom_sankey(
+    flow.alpha = .8,
+    node.color = "gray30"
+  ) +
+  geom_sankey_label(size = 4,
+                    color = "white",
+                    fill = "gray30") +
+  scale_x_discrete(
+    labels = c("Sex", 
+               "Have you been on a trip in the last month?",
+               "Dengue")
+  ) +
+  labs(
+    x = NULL,
+    title = NULL
+  ) +
+  theme_sankey(base_size = 18) +
+  innovar::scale_fill_innova("npr") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = .5),
+    plot.margin = margin(5, 0, 5, 0)
+  )
+
+sankey_dengue
+```
 
 
+```{r eval=FALSE}
+ggsave("./sankey_seropositive_dengue.png",
+       sankey_dengue,
+       height = 7,
+       width = 12,
+       dpi = 300)
+```
 
+
+### Sankey Zika
+
+```{r}
+relabels_sankey_zika <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, Zika.NS1_pos) %>% 
+  count(x, node) %>% 
+  group_by(x) %>% 
+  mutate(
+    percentage = scales::percent(
+      n / sum(n),
+      accuracy = 0.1
+    ),
+    node2 = paste0(
+      node,
+      paste0("\n(", percentage, ")")
+    )
+  ) %>% 
+  ungroup() %>% 
+  select(-c(n, percentage))
+  
+sankey_zika <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, Zika.NS1_pos) %>% 
+  left_join(
+    relabels_sankey_zika,
+    by = join_by(x, node)
+  ) %>% 
+  left_join(
+    relabels_sankey_zika,
+    by = join_by(next_x == x, 
+                 next_node == node)
+  ) %>% 
+  mutate(node = node2.x,
+         next_node = node2.y) %>% 
+  select(-c(node2.x, node2.y)) %>% 
+  ggplot(aes(
+    x = x,
+    next_x = next_x,
+    node = node,
+    next_node = next_node,
+    fill = factor(node),
+    label = node
+  )) +
+  geom_sankey(
+    flow.alpha = .8,
+    node.color = "gray30"
+  ) +
+  geom_sankey_label(size = 4,
+                    color = "white",
+                    fill = "gray30") +
+  scale_x_discrete(
+    labels = c("Sex", 
+               "Have you been on a trip in the last month?",
+               "Zika")
+  ) +
+  labs(
+    x = NULL,
+    title = NULL
+  ) +
+  theme_sankey(base_size = 18) +
+  innovar::scale_fill_innova("npr") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = .5),
+    plot.margin = margin(5, 0, 5, 0)
+  )
+
+sankey_zika
+```
+
+
+```{r eval=FALSE}
+ggsave("./sankey_seropositive_zika.png",
+       sankey_zika,
+       height = 7,
+       width = 12,
+       dpi = 300)
+```
+
+### Sankey Malaria
+
+```{r}
+relabels_sankey_malaria <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, any_pv_pf_exposure) %>% 
+  count(x, node) %>% 
+  group_by(x) %>% 
+  mutate(
+    percentage = scales::percent(
+      n / sum(n),
+      accuracy = 0.1
+    ),
+    node2 = paste0(
+      node,
+      paste0("\n(", percentage, ")")
+    )
+  ) %>% 
+  ungroup() %>% 
+  select(-c(n, percentage))
+  
+sankey_malaria <- ffi_sankey_format %>% 
+  make_long(gender, ffi_is_trip_month, any_pv_pf_exposure) %>% 
+  left_join(
+    relabels_sankey_malaria,
+    by = join_by(x, node)
+  ) %>% 
+  left_join(
+    relabels_sankey_malaria,
+    by = join_by(next_x == x, 
+                 next_node == node)
+  ) %>% 
+  mutate(node = node2.x,
+         next_node = node2.y) %>% 
+  select(-c(node2.x, node2.y)) %>% 
+  ggplot(aes(
+    x = x,
+    next_x = next_x,
+    node = node,
+    next_node = next_node,
+    fill = factor(node),
+    label = node
+  )) +
+  geom_sankey(
+    flow.alpha = .8,
+    node.color = "gray30"
+  ) +
+  geom_sankey_label(size = 4,
+                    color = "white",
+                    fill = "gray30") +
+  scale_x_discrete(
+    labels = c("Sex", 
+               "Have you been on a trip in the last month?",
+               "Malaria")
+  ) +
+  labs(
+    x = NULL,
+    title = NULL
+  ) +
+  theme_sankey(base_size = 18) +
+  innovar::scale_fill_innova("npr") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = .5),
+    plot.margin = margin(5, 0, 5, 0)
+  )
+
+sankey_malaria
+```
+
+
+```{r eval=FALSE}
+ggsave("./sankey_seropositive_malaria.png",
+       sankey_malaria,
+       height = 7,
+       width = 12,
+       dpi = 300)
+```
