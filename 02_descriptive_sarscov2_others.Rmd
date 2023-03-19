@@ -810,7 +810,7 @@ plot_ffi_sero_gender <- ffi_sero_gender %>%
     title = str_wrap("Seropositivity  by District and distance category of the communities to Loreto Regional Hospital and Health Facilities on a Sampling Basis", 80)
   ) +
   guides(
-    color = guide_legend("Gender")
+    color = guide_legend("Sex")
   ) +
   innovar::scale_color_innova("npr") +
   theme_bw() +
