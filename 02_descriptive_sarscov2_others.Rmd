@@ -166,9 +166,10 @@ plot_ffi_sero1 <-
   guides(
     color = guide_legend("Disease")
   ) +
-  viridis::scale_color_viridis(discrete = TRUE,
-                               option = "D",
-                               end = 0.82) +
+  ggsci::scale_color_igv() + 
+  # viridis::scale_color_viridis(discrete = TRUE,
+  #                              option = "D",
+  #                              end = 0.82) +
   #scale_color_brewer(palette = "Set3") +
   #innovar::scale_color_innova("npr") +
   theme_bw() +
@@ -187,11 +188,12 @@ plot_ffi_sero1 <-
       face = "bold"
     )
   )
+plot_ffi_sero1
 ```
 
 ```{r}
 ggsave(
-  "plot_ffi_sero1.png",
+  "plot_ffi_sero10.png",
   plot = plot_ffi_sero1,
   width = 10,
   height = 6,
@@ -238,9 +240,10 @@ plot_ffi_sero2 <-
   guides(
     color = guide_legend("Disease")
   ) +
-  viridis::scale_color_viridis(discrete = TRUE,
-                               option = "D",
-                               end = 0.82) +
+  ggsci::scale_color_igv() + 
+  # viridis::scale_color_viridis(discrete = TRUE,
+  #                              option = "H",
+  #                              end = 0.82) +
   #scale_color_brewer(palette = "Set3") +
   #innovar::scale_color_innova("npr") +
   theme_bw() +
@@ -264,7 +267,7 @@ plot_ffi_sero2
 
 ```{r}
 ggsave(
-  "plot_ffi_sero2.png",
+  "plot_ffi_seroB_10.png",
   plot = plot_ffi_sero2,
   width = 10,
   height = 6,
